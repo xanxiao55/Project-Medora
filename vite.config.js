@@ -7,10 +7,18 @@ export default defineConfig({
   plugins: [
     react()
   ],
+  root: 'client',
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      '@': path.resolve(__dirname, 'client/src'),
     },
   },
-  
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
+  },
 })
