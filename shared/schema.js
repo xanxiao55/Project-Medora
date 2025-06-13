@@ -3,8 +3,9 @@ import { z } from "zod";
 export const insertUserSchema = z.object({
   firebaseUid: z.string(),
   email: z.string().email(),
+  name: z.string().optional(),
   displayName: z.string().optional(),
-  photoURL: z.string().url().optional(),
+  photoURL: z.string().url().optional().or(z.literal('')),
 });
 
 export const userSchema = insertUserSchema.extend({
@@ -35,7 +36,6 @@ export const insertRegistrationSchema = z.object({
   marathonId: z.string(),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email(),
   contact: z.string().min(1, "Contact number is required"),
   additionalInfo: z.string().optional(),
 });

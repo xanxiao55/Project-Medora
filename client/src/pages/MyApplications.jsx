@@ -35,8 +35,9 @@ const MyApplications = () => {
   const [editingRegistration, setEditingRegistration] = useState(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
+  // Fixed query key to match the correct route
   const { data: registrations, isLoading, error } = useQuery({
-    queryKey: [`/api/registrations/user/${user?.uid}${searchTerm ? `?search=${searchTerm}` : ''}`],
+    queryKey: [`/api/registrations/user/${user?.uid}`],
     enabled: !!user?.uid,
   });
 
@@ -135,6 +136,15 @@ const MyApplications = () => {
     }
   };
 
+  // Filter registrations based on search term
+  const filteredRegistrations = registrations?.filter(registration => {
+    if (!searchTerm) return true;
+    const marathon = registration.marathon;
+    return marathon?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           registration.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           registration.lastName?.toLowerCase().includes(searchTerm.toLowerCase());
+  }) || [];
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -217,7 +227,7 @@ const MyApplications = () => {
       </div>
 
       {/* Applications Table */}
-      {registrations && registrations.length > 0 ? (
+      {filteredRegistrations.length > 0 ? (
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -233,7 +243,7 @@ const MyApplications = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {registrations.map((registration) => {
+                  {filteredRegistrations.map((registration) => {
                     const marathon = registration.marathon;
                     return (
                       <TableRow key={registration.id}>

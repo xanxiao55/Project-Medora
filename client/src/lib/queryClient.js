@@ -18,6 +18,12 @@ export async function apiRequest(method, url, data, options = {}) {
     },
   };
 
+  // Add Firebase token to requests if available
+  const token = localStorage.getItem('firebase-token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
   if (data) {
     config.body = JSON.stringify(data);
   }
@@ -28,6 +34,8 @@ export async function apiRequest(method, url, data, options = {}) {
     if (on401 === "returnNull") {
       return null;
     }
+    // Clear invalid token
+    localStorage.removeItem('firebase-token');
     throw new Error('Unauthorized');
   }
 
@@ -48,12 +56,20 @@ export const getQueryFn = (options = {}) => {
       },
     };
 
+    // Add Firebase token to requests if available
+    const token = localStorage.getItem('firebase-token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     const res = await fetch(url, config);
     
     if (res.status === 401) {
       if (on401 === "returnNull") {
         return null;
       }
+      // Clear invalid token
+      localStorage.removeItem('firebase-token');
       throw new Error('Unauthorized');
     }
 

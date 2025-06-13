@@ -45,10 +45,18 @@ const MarathonDetails = () => {
     enabled: !!id,
   });
 
+  // Check if user is already registered
+  const { data: existingRegistration } = useQuery({
+    queryKey: [`/api/registrations/user/${user?.uid}`],
+    enabled: !!user?.uid && !!marathon?.id,
+    select: (data) => data?.find(reg => reg.marathonId === marathon?.id)
+  });
+
   const registrationMutation = useMutation({
     mutationFn: (data) => apiRequest('POST', '/api/registrations', data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [`/api/marathons/${id}`] });
+      await queryClient.invalidateQueries({ queryKey: [`/api/registrations/user/${user?.uid}`] });
       setIsRegistrationDialogOpen(false);
       setRegistrationData({
         firstName: '',
@@ -134,6 +142,7 @@ const MarathonDetails = () => {
   const registrationOpen = isRegistrationOpen(marathon.regStartDate, marathon.regEndDate);
   const timeUntil = getTimeUntilDate(marathon.startDate);
   const totalTimeInSeconds = Math.floor((new Date(marathon.startDate) - new Date()) / 1000);
+  const isAlreadyRegistered = !!existingRegistration;
 
   const getDistanceBadgeColor = (distance) => {
     switch (distance) {
@@ -278,7 +287,17 @@ const MarathonDetails = () => {
                     </div>
                   </div>
 
-                  {registrationOpen ? (
+                  {isAlreadyRegistered ? (
+                    <div className="text-center space-y-2">
+                      <Button disabled className="w-full bg-green-600">
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        Already Registered
+                      </Button>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        You are already registered for this marathon
+                      </p>
+                    </div>
+                  ) : registrationOpen ? (
                     <Dialog open={isRegistrationDialogOpen} onOpenChange={setIsRegistrationDialogOpen}>
                       <DialogTrigger asChild>
                         <Button className="w-full bg-primary-600 hover:bg-primary-700">

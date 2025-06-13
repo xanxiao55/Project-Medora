@@ -311,9 +311,18 @@ export class MongoStorage {
       let registrations = Array.from(this.memoryData.registrations.values())
         .filter(r => r.userId === userId);
       
+      // Add marathon data to each registration
+      registrations = registrations.map(registration => {
+        const marathon = this.memoryData.marathons.get(registration.marathonId);
+        return {
+          ...registration,
+          marathon: marathon || null
+        };
+      });
+      
       if (search) {
         registrations = registrations.filter(r => {
-          const marathon = this.memoryData.marathons.get(r.marathonId);
+          const marathon = r.marathon;
           return marathon && marathon.title && marathon.title.toLowerCase().includes(search.toLowerCase());
         });
       }
@@ -321,30 +330,31 @@ export class MongoStorage {
       return registrations.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
     
+    // Use aggregation pipeline to join with marathons collection
+    const pipeline = [
+      { $match: { userId } },
+      {
+        $lookup: {
+          from: "marathons",
+          localField: "marathonId",
+          foreignField: "id",
+          as: "marathon"
+        }
+      },
+      { $unwind: { path: "$marathon", preserveNullAndEmptyArrays: true } }
+    ];
+
     if (search) {
-      const pipeline = [
-        { $match: { userId } },
-        {
-          $lookup: {
-            from: "marathons",
-            localField: "marathonId",
-            foreignField: "id",
-            as: "marathon"
-          }
-        },
-        { $unwind: "$marathon" },
-        {
-          $match: {
-            "marathon.title": { $regex: search, $options: "i" }
-          }
-        },
-        { $sort: { createdAt: -1 } }
-      ];
-      
-      return await this.db.collection("registrations").aggregate(pipeline).toArray();
+      pipeline.push({
+        $match: {
+          "marathon.title": { $regex: search, $options: "i" }
+        }
+      });
     }
 
-    return await this.db.collection("registrations").find({ userId }).sort({ createdAt: -1 }).toArray();
+    pipeline.push({ $sort: { createdAt: -1 } });
+    
+    return await this.db.collection("registrations").aggregate(pipeline).toArray();
   }
 
   async updateRegistration(id, updateData) {
